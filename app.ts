@@ -1,5 +1,6 @@
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
+import staticFiles from "https://deno.land/x/static_files@1.1.0/mod.ts";
 
 const handle = new Handlebars();
 const router = new Router();
@@ -13,6 +14,7 @@ router
 
 const app = new Application();
 
+app.use(staticFiles("public"));
 app.use(router.routes());
 app.use(router.allowedMethods());
 
