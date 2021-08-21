@@ -8,7 +8,16 @@ const router = new Router();
 router
   .get('/', async (context: any) => {
     context.response.body = await handle.renderView('index', {
-      title: 'HN Clone'
+      title: 'HN Clone',
+      news: [
+        {
+          rank: 1,
+          url: 'https://codewriteplay.com/2021/08/20/a-facebook-hacker-beat-my-2fa-bricked-my-oculus-quest-and-hit-the-company-credit-card/',
+          tagline: 'Facebook hacker beat my 2FA, bricked my Oculus, and hit the company credit card',
+          address: 'codewriteplay.com',
+          points: 539,
+        }
+      ]
     });
   });
 
