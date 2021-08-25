@@ -1,23 +1,32 @@
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
 import staticFiles from "https://deno.land/x/static_files@1.1.0/mod.ts";
+import { parseFeed } from "https://deno.land/x/rss/mod.ts";
 
 const handle = new Handlebars();
 const router = new Router();
 
 router
   .get('/', async (context: any) => {
+    const response = await fetch('https://news.ycombinator.com/rss');
+    const xml = await response.text();
+    const feed = await parseFeed(xml);
+    const news: any = [];
+
+    feed.entries.forEach((entry, index) => {
+      const href = entry.links[0]['href'];
+      news.push({
+        rank: index + 1,
+        url: href,
+        tagline: (entry.title && entry.title.value) || href,
+        address: href,
+        points: 0
+      });
+    });
+
     context.response.body = await handle.renderView('index', {
       title: 'HN Clone',
-      news: [
-        {
-          rank: 1,
-          url: 'https://codewriteplay.com/2021/08/20/a-facebook-hacker-beat-my-2fa-bricked-my-oculus-quest-and-hit-the-company-credit-card/',
-          tagline: 'Facebook hacker beat my 2FA, bricked my Oculus, and hit the company credit card',
-          address: 'codewriteplay.com',
-          points: 539,
-        }
-      ]
+      news: news
     });
   });
 
