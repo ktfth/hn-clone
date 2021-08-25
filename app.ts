@@ -6,6 +6,17 @@ import { parseFeed } from "https://deno.land/x/rss/mod.ts";
 const handle = new Handlebars();
 const router = new Router();
 
+function cleanUrl(url: URL): string {
+  let address = '';
+  const pattern = 'www.'
+  if (url.host.indexOf(pattern) > -1) {
+    address = url.host.slice(pattern.length);
+  } else {
+    address = url.host;
+  }
+  return address;
+}
+
 router
   .get('/', async (context: any) => {
     const response = await fetch('https://news.ycombinator.com/rss');
@@ -15,11 +26,16 @@ router
 
     feed.entries.forEach((entry, index) => {
       const href = entry.links[0]['href'];
+      let address = null;
+      if (href) {
+        const url = new URL(href);
+        address = cleanUrl(url);
+      }
       news.push({
         rank: index + 1,
         url: href,
         tagline: (entry.title && entry.title.value) || href,
-        address: href,
+        address,
         points: 0
       });
     });
