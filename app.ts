@@ -5,16 +5,16 @@ import staticFiles from "https://deno.land/x/static_files@1.1.0/mod.ts";
 const handle = new Handlebars();
 const router = new Router();
 
-// function cleanUrl(url: URL): string {
-//   let address = '';
-//   const pattern = 'www.'
-//   if (url.host.indexOf(pattern) > -1) {
-//     address = url.host.slice(pattern.length);
-//   } else {
-//     address = url.host;
-//   }
-//   return address;
-// }
+function cleanUrl(url: URL): string {
+  let address = '';
+  const pattern = 'www.'
+  if (url.host.indexOf(pattern) > -1) {
+    address = url.host.slice(pattern.length);
+  } else {
+    address = url.host;
+  }
+  return address;
+}
 
 const title = 'HN Clone'
 
@@ -37,6 +37,18 @@ router
     context.response.body = await handle.renderView('submit', {
       title
     });
+  })
+  .post('/r', async (context: any) => {
+    const result = context.request.body();
+    const value = await result.value;
+    news.push({
+      rank: news[news.length - 1]['rank'] + 1,
+      tagline: value.get('tagline'),
+      url: value.get('url'),
+      address: cleanUrl(new URL(value.get('url'))),
+      points: 0,
+    });
+    context.response.redirect('/');
   });
 
 const app = new Application();
