@@ -53,9 +53,10 @@ router
 
 const app = new Application();
 
-app.use(staticFiles("public"));
+app.use(staticFiles('public'));
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-console.log('Listening on port 8000');
-await app.listen("127.0.0.1:8000");
+const PORT = Deno.env.get('PORT') || 3000;
+console.log(`Listening on port ${PORT}`);
+await app.listen(`127.0.0.1:${PORT}`);
