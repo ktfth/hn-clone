@@ -1,5 +1,6 @@
 import { Application, Router, send } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
+import { moment } from "https://deno.land/x/deno_moment/mod.ts";
 
 const handle = new Handlebars();
 const router = new Router();
@@ -22,14 +23,21 @@ const news = [{
   url: 'https://google.com',
   tagline: 'Google',
   address: 'google.com',
-  points: 0
+  points: 0,
+  createdAt: new Date(),
+  displayDate: null,
 }];
 
 router
   .get('/', async (context: any) => {
+    const modifiedNews = news
+      .map((n) => {
+        n.displayDate = moment(n.createdAt).fromNow().toString();
+        return n;
+      });
     context.response.body = await handle.renderView('index', {
       title,
-      news: news
+      news: modifiedNews,
     });
   })
   .get('/submit', async (context: any) => {
@@ -46,6 +54,8 @@ router
       url: value.get('url'),
       address: cleanUrl(new URL(value.get('url'))),
       points: 0,
+      createdAt: new Date(),
+      displayDate: null,
     });
     context.response.redirect('/');
   });
