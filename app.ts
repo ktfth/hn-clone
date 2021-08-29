@@ -1,6 +1,25 @@
 import { Application, Router, send } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
 import { moment } from "https://deno.land/x/deno_moment/mod.ts";
+import { MongoClient } from "https://deno.land/x/mongo@v0.24.0/mod.ts";
+
+const client = new MongoClient();
+
+await client.connect('mongodb://localhost:27017');
+
+const db = client.database('hn-clone');
+
+interface News {
+  rank: number;
+  tagline: string;
+  url: string;
+  address: string;
+  points: number;
+  createdAt: Date;
+  displayDate: string | null;
+}
+
+const news = db.collection<News>('news');
 
 const handle = new Handlebars();
 const router = new Router();
@@ -18,20 +37,12 @@ function cleanUrl(url: URL): string {
 
 const title = 'HN Clone'
 
-let news = [{
-  rank: 1,
-  url: 'https://google.com',
-  tagline: 'Google',
-  address: 'google.com',
-  points: 0,
-  createdAt: new Date(),
-  displayDate: null,
-}];
-
 router
   .get('/', async (context: any) => {
-    const modifiedNews = news
-      .map((n) => {
+    const allNews = await news.find({}).limit(30).sort({ createdAt: -1 }).toArray();
+    const modifiedNews = allNews
+      .map((n, i) => {
+        n['rank'] = i + 1;
         n.displayDate = moment(n.createdAt).fromNow().toString();
         return n;
       });
@@ -48,12 +59,8 @@ router
   .post('/r', async (context: any) => {
     const result = context.request.body();
     const value = await result.value;
-    news = news.map((n, i) => {
-      n['rank'] = n['rank'] + 1;
-      return n;
-    });
-    news.unshift({
-      rank: news[0]['rank'] - 1,
+    await news.insertOne({
+      rank: -1,
       tagline: value.get('tagline'),
       url: value.get('url'),
       address: cleanUrl(new URL(value.get('url'))),
