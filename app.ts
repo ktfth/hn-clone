@@ -18,7 +18,7 @@ function cleanUrl(url: URL): string {
 
 const title = 'HN Clone'
 
-const news = [{
+let news = [{
   rank: 1,
   url: 'https://google.com',
   tagline: 'Google',
@@ -48,8 +48,12 @@ router
   .post('/r', async (context: any) => {
     const result = context.request.body();
     const value = await result.value;
-    news.push({
-      rank: news[news.length - 1]['rank'] + 1,
+    news = news.map((n, i) => {
+      n['rank'] = n['rank'] + 1;
+      return n;
+    });
+    news.unshift({
+      rank: news[0]['rank'] - 1,
       tagline: value.get('tagline'),
       url: value.get('url'),
       address: cleanUrl(new URL(value.get('url'))),
