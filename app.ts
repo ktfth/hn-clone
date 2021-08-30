@@ -18,6 +18,7 @@ await client.connect('mongodb://localhost:27017');
 const db = client.database('hn-clone');
 
 interface News {
+  _id: { $oid: string };
   rank: number;
   tagline: string;
   url: string;
@@ -28,8 +29,17 @@ interface News {
 }
 
 interface User {
+  _id: { $oid: string };
   acct: string;
   pw: string;
+  createdAt: Date;
+}
+
+interface Comment {
+  _id: { $oid: string };
+  message: string;
+  createdAt: Date;
+  user_id: string;
 }
 
 const news = db.collection<News>('news');
@@ -104,7 +114,7 @@ router
             typ: 'JWT'
           }, {
             acct: value.get('acct'),
-            exp: new Date().getTime() * 60000,
+            exp: new Date().getTime() * 60000 * 60,
             iss: 'hn-clone'
           }, key);
           context.cookies.set('token', jwt);
@@ -126,19 +136,32 @@ router
       context.response.redirect('/');
     }
   })
-  .post('/r', async ({request, response, cookies}) => {
+  .post('/r', async ({request, response, cookies, state}) => {
+    if (!state.auth) response.redirect('/auth');
     const result = request.body();
     const value = await result.value;
-    await news.insertOne({
-      rank: -1,
-      tagline: value.get('tagline'),
-      url: value.get('url'),
-      address: cleanUrl(new URL(value.get('url'))),
-      points: 0,
-      createdAt: new Date(),
-      displayDate: null,
+    const user = await users.findOne({ acct: state.username });
+    if (user) {
+      await news.insertOne({
+        rank: -1,
+        tagline: value.get('tagline'),
+        url: value.get('url'),
+        address: cleanUrl(new URL(value.get('url'))),
+        points: 0,
+        createdAt: new Date(),
+        displayDate: null,
+        user_id: user._id.toString(),
+      });
+      response.redirect('/');
+    } else {
+      response.redirect('/auth');
+    }
+  })
+  .get('/comment', async (context) => {
+    if (!context.state.auth) context.response.redirect('/auth');
+    context.response.body = await handle.renderView('comment', {
+      title,
     });
-    response.redirect('/');
   });
 
 const app = new Application();
