@@ -1,9 +1,9 @@
 import { Application, Router, send } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
-import { moment } from "https://deno.land/x/deno_moment/mod.ts";
-import { MongoClient } from "https://deno.land/x/mongo@v0.24.0/mod.ts";
-import { create, verify } from "https://deno.land/x/djwt/mod.ts";
-import * as bcrypt from "https://deno.land/x/bcrypt/mod.ts";
+import { moment } from 'https://deno.land/x/deno_moment/mod.ts';
+import { MongoClient } from 'https://deno.land/x/mongo@v0.24.0/mod.ts';
+import { create, verify } from 'https://deno.land/x/djwt/mod.ts';
+import * as bcrypt from 'https://deno.land/x/bcrypt/mod.ts';
 
 const key = await crypto.subtle.generateKey(
   { name: "HMAC", hash: "SHA-512" },
@@ -66,6 +66,7 @@ router
     });
   })
   .get('/submit', async (context: any) => {
+    if (!context.state.auth) context.response.redirect('/auth');
     context.response.body = await handle.renderView('submit', {
       title
     });
@@ -104,7 +105,7 @@ router
           }, {
             acct: value.get('acct'),
             exp: new Date().getTime() * 60000,
-            iss: 'ted'
+            iss: 'hn-clone'
           }, key);
           context.cookies.set('token', jwt);
           context.response.redirect('/submit');
