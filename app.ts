@@ -2,6 +2,13 @@ import { Application, Router, send } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
 import { moment } from "https://deno.land/x/deno_moment/mod.ts";
 import { MongoClient } from "https://deno.land/x/mongo@v0.24.0/mod.ts";
+import { create, verify } from "https://deno.land/x/djwt/mod.ts"
+
+const key = await crypto.subtle.generateKey(
+  { name: "HMAC", hash: "SHA-512" },
+  true,
+  ["sign", "verify"],
+);
 
 const client = new MongoClient();
 
@@ -56,8 +63,24 @@ router
       title
     });
   })
-  .post('/r', async (context: any) => {
+  .get('/auth', async (context) => {
+    context.response.body = await handle.renderView('auth');
+  })
+  .post('/auth', async (context) => {
     const result = context.request.body();
+    const value = await result.value;
+    console.log(value.get('creating'));
+    const jwt = await create({
+      alg: 'HS512',
+      typ: 'JWT'
+    }, {
+      acct: value.get('acct'),
+      pw: value.get('pw'),
+    }, key);
+    context.response.redirect('/');
+  })
+  .post('/r', async ({request, response, cookies}) => {
+    const result = request.body();
     const value = await result.value;
     await news.insertOne({
       rank: -1,
@@ -68,11 +91,22 @@ router
       createdAt: new Date(),
       displayDate: null,
     });
-    context.response.redirect('/');
+    response.redirect('/');
   });
 
 const app = new Application();
 
+app.use(async (context, next) => {
+  const token = await context.cookies.get('token') || '';
+  if (token) {
+    const result = await verify(token, key);
+    if (result) {
+      context.state.auth = true;
+      context.state.username = result.username;
+    }
+  }
+  await next();
+});
 app.use(router.routes());
 app.use(router.allowedMethods());
 app.use(async (context: any) => {
