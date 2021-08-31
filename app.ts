@@ -182,6 +182,23 @@ router
       news: currentNews,
       comments: allComments,
     });
+  })
+  .post('/comment', async (context) => {
+    if (!context.state.auth) context.response.redirect('/auth');
+    const result = context.request.body();
+    const value = await result.value;
+    const user = await users.findOne({ acct: context.state.username });
+    if (user) {
+      await comments.insertOne({
+        message: value.get('text'),
+        user_id: user._id.toString(),
+        news_id: value.get('parent'),
+        createdAt: new Date()
+      });
+      context.response.redirect(`/comment?id=${value.get('parent')}`)
+    } else {
+      context.response.redirect('/auth');
+    }
   });
 
 const app = new Application();
