@@ -1,7 +1,7 @@
 import { Application, Router, send } from "https://deno.land/x/oak/mod.ts";
 import { Handlebars } from 'https://deno.land/x/handlebars/mod.ts';
 import { moment } from 'https://deno.land/x/deno_moment/mod.ts';
-import { MongoClient } from 'https://deno.land/x/mongo@v0.24.0/mod.ts';
+import { Bson, MongoClient } from 'https://deno.land/x/mongo@v0.24.0/mod.ts';
 import { create, verify } from 'https://deno.land/x/djwt/mod.ts';
 import * as bcrypt from 'https://deno.land/x/bcrypt/mod.ts';
 
@@ -40,10 +40,13 @@ interface Comment {
   message: string;
   createdAt: Date;
   user_id: string;
+  news_id: string;
+  displayDate: string | null;
 }
 
 const news = db.collection<News>('news');
 const users = db.collection<User>('users');
+const comments = db.collection<Comment>('comments');
 
 const handle = new Handlebars();
 const router = new Router();
@@ -159,8 +162,25 @@ router
   })
   .get('/comment', async (context) => {
     if (!context.state.auth) context.response.redirect('/auth');
+    const id = context.request.url.searchParams.get('id');
+    let currentNews = await news
+      .findOne({ _id: new Bson.ObjectId(id) });
+    let allComments = await comments
+      .find({ news_id: id })
+      .sort({ createdAt: -1 })
+      .toArray();
+    allComments = allComments
+      .map((comment) => {
+        comment.displayDate = moment(comment.createdAt).fromNow().toString();
+        return comment;
+      });
+    if (currentNews) {
+      currentNews.displayDate = moment(currentNews.createdAt).fromNow().toString();
+    }
     context.response.body = await handle.renderView('comment', {
       title,
+      news: currentNews,
+      comments: allComments,
     });
   });
 
